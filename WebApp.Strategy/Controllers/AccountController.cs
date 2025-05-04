@@ -1,8 +1,9 @@
-﻿using BaseProje.Models;
+﻿
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using WebApp.Models;
 
-namespace BaseProje.Controllers
+namespace WebApp.Controllers
 {
     public class AccountController : Controller
     {

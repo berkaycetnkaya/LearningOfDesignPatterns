@@ -1,6 +1,10 @@
-using BaseProje.Models;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using NuGet.Configuration;
+using WebApp.Models;
+using WebApp.Strategy.Models;
+using WebApp.Strategy.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +13,31 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppIdentityDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer")));
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<IProductRepository>(sp =>
+{
+    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+
+    var claim = httpContextAccessor.HttpContext.User.Claims.Where(claim => claim.Type == WebApp.Strategy.Models.Settings.claimDataBaseType).FirstOrDefault();
+
+    var context = sp.GetRequiredService<AppIdentityDbContext>();
+
+    if (claim != null) return new ProductRepositoryFromSqlServer(context);
+
+    var databaseType = (EDatabaseType)int.Parse(claim.Value);
+
+    return databaseType switch
+    {
+        EDatabaseType.SqlServer => new ProductRepositoryFromSqlServer(context),
+        EDatabaseType.MongoDb => new ProductRepositoryFromSqlServer(context),
+        _ => throw new NotImplementedException()
+    };
+
+
+});
+
 
 // ?? Identity servisini doðru User tipiyle tanýt
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
@@ -20,6 +49,8 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 
 // 2. Uygulamayý oluþtur
 var app = builder.Build();
+
+
 
 // 3. Migration ve ilk kullanýcýyý oluþtur
 using (var scope = app.Services.CreateScope())
